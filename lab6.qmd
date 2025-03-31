@@ -7,8 +7,7 @@ editor: visual
 ---
 
 ```{r}
-
-##loading in libraries
+# loading in libraries
 library(tidyverse)
 library(tidymodels)
 library(powerjoin)
@@ -18,8 +17,35 @@ library(baguette)
 ```
 
 ```{r}
-#| echo: false
-2 * 2
+# loading in CAMELS data set 
+root  <- 'https://gdex.ucar.edu/dataset/camels/file'
+
+# downloading documentation pdf
+download.file('https://gdex.ucar.edu/dataset/camels/file/camels_attributes_v2.0.pdf', 
+              'data/camels_attributes_v2.0.pdf')
+
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+#Getting Basin Characteristics 
+types <- c("clim", "geol", "soil", "topo", "vege", "hydro")
+
+library(glue)
+# Where the files live online
+remote_files <- glue('{root}/camels_{types}.txt')
+
+# where we want to download the data ...
+local_files   <- glue('data/camels_{types}.txt')
+
+library(purrr)
+walk2(remote_files, local_files, download.file, quiet = TRUE)
+
+library(readr)
+library(MAP)
+# Read and merge data
+camels <- map(local_files, read_delim, show_col_types = FALSE) 
+
+camels <- power_full_join(camels ,by = 'gauge_id')
+
+
+```
