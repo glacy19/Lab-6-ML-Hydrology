@@ -111,7 +111,7 @@ ggplot(camels, aes(x = aridity, y = p_mean)) +
 ```
 
 ```{r}
-# visualizing who a log trnasformation may benefit the q_mean data
+# visualizing how a log trnasformation may benefit the q_mean data
 
 ggplot(camels, aes(x = aridity, y = p_mean)) +
   geom_point(aes(color = q_mean)) +
