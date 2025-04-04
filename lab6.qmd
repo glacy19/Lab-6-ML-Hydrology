@@ -51,7 +51,7 @@ camels <-power_full_join(camels ,by = 'gauge_id')
 
 ```
 
-Question 1: From the documentation PDF, report what zero_q_freq represents by making a map of the sites
+**Question 1: From the documentation PDF, report what zero_q_freq represents by making a map of the sites**
 
 ```{r}
 ggplot(data = camels, aes(x = gauge_lon, y = gauge_lat)) +
@@ -63,7 +63,7 @@ ggplot(data = camels, aes(x = gauge_lon, y = gauge_lat)) +
 
 zero_q_freq represents the the frequency of days with no flow per day (mm).
 
-Question 2: Map Models
+**Question 2: Map Models**
 
 ```{r}
 library(tidyverse)
@@ -294,4 +294,104 @@ autoplot(wf)
 rank_results(wf, rank_metric = "rsq", select_best = TRUE)
 ```
 
-Question 3:
+**Question 3: Building XGBoost and Neural Network Model**
+
+```{r}
+#defining the xgboost model
+xg_model <- boost_tree() |>
+  set_engine("xgboost") |>
+  set_mode("classification")
+
+# building neural network model
+library(baguette)
+nn_model <- bag_mlp() |>
+  set_engine("nnet") |>
+  set_mode("classification")
+
+# evaluate models and compare with linear and random forest models
+workflow() |>
+  add_model(nn_model) |>
+  add_model(xg_model) |>
+  fir-resamples(resamples = ) |>
+  collect_metrics()
+```
+
+Which of the 4 models would you move forward with?
+
+**Question 4: Data prep/ Data splitting to predict mean Stream flow; experiment with other predictors**
+
+```{r}
+# starting with splitting the data
+
+set.seed(123)
+
+streamflow <- q_mean |> 
+  mutate(logQmean = log(q_mean))
+
+streamflow_split <- initial_split(streamflow, prop = 0.75)
+streamflow_train <- training(streamflow_split)
+streamflow_test  <- testing(streamflow_split)
+
+streamflow_fold <- vfold_cv(streamflow_train, v = 10)
+```
+
+Recipe:
+
+```{r}
+# pre processor, building recipe 
+
+# Create a recipe to preprocess the data
+rec2 <-  recipe(logQmean ~ soil_porosity + dom_land_cover, data = streamflow_train) %>%
+  # Log transform the predictor variables (aridity and p_mean)
+  step_log(all_predictors()) %>%
+  # Add an interaction term between aridity and p_mean
+  step_interact(terms = ~ soil_porosity:dom_land_cover) |> 
+  # Drop any rows with missing values in the pred
+  step_naomit(all_predictors(), all_outcomes())
+
+## fitting the lm to the data
+
+# Prepare the data
+baked_stream_data <- prep(rec, streamflow_train) |> 
+  bake(new_data = NULL)
+```
+
+Define 3 models:
+
+```{r}
+
+# Interaction with lm
+#  Base lm sets interaction terms with the * symbol
+lm_stream_base <- lm(logQmean ~ soil_porosity * dom_land_cover, data = baked_stream_data)
+summary(lm_stream_base)
+
+
+# Sanity Interaction term from recipe ... these should be equal!!
+summary(lm(logQmean ~ soil_porosity + dome-land_cover + soil_x_land, data = baked_stream_data))
+
+
+## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
+
+stream_test_data <-  bake(prep(rec), new_stream_data = streamflow_test)
+stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_data)
+
+
+```
+
+Workflow set:
+
+```{r}
+
+```
+
+Evaluation:
+
+```{r}
+
+```
+
+Extract and Evaluate:
+
+```{r}
+
+```
