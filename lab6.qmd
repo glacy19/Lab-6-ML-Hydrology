@@ -202,28 +202,24 @@ ggplot(test_data, aes(x = logQmean, y = lm_pred, colour = aridity)) +
 Using a workflow instead: using linear_reg function to define a linear regression model, adding the recipe to the workflow, fitting the training data and extracting the model coefficients
 
 ```{r}
-
 # Define model
-lm_model <- linear_reg() %>%
+lm_model <- linear_reg() |>
   # define the engine
-  set_engine("lm") %>%
+  set_engine("lm") |>
   # define the mode
   set_mode("regression")
 
 # Instantiate a workflow ...
-lm_wf <- workflow() %>%
+lm_wf <- workflow() |>
   # Add the recipe
-  add_recipe(rec) %>%
+  add_recipe(rec) |>
   # Add the model
-  add_model(lm_model) %>%
+  add_model(lm_model) |>
   # Fit the model to the training data
   fit(data = camels_train) 
 
 # Extract the model coefficients from the workflow
 summary(extract_fit_engine(lm_wf))$coefficients
-
-
-# ensuring we replicate the results from the lm-base model
 
 # From the base implementation
 summary(lm_base)$coefficients
@@ -232,7 +228,6 @@ summary(lm_base)$coefficients
 Making predictions
 
 ```{r}
-
 lm_data <- augment(lm_wf, new_data = camels_test)
 dim(lm_data)
 ```
@@ -312,6 +307,9 @@ nn_model <- bag_mlp() |>
 workflow() |>
   add_model(nn_model) |>
   add_model(xg_model) |>
+  add_model(lm_model)|>
+  add_model(rf_model)
+  
   fir-resamples(resamples = ) |>
   collect_metrics()
 ```
@@ -381,7 +379,14 @@ stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_dat
 Workflow set:
 
 ```{r}
+## ORIGINAL CODE FROM DEMO ABOVE
 
+wf <- workflow_set(list(rec), list(lm_model, rf_model)) %>%
+  workflow_map('fit_resamples', resamples = camels_cv) 
+
+autoplot(wf)
+
+rank_results(wf, rank_metric = "rsq", select_best = TRUE)
 ```
 
 Evaluation:
