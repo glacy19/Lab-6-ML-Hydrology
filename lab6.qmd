@@ -305,10 +305,10 @@ nn_model <- bag_mlp() |>
 
 # evaluate models and compare with linear and random forest models
 workflow() |>
-  add_model(nn_model) |>
-  add_model(xg_model) |>
-  add_model(lm_model)|>
-  add_model(rf_model)
+  add_model(nn_model,
+            xg_model, 
+            lm_model, 
+            rf_model)
   
   fir-resamples(resamples = ) |>
   collect_metrics()
@@ -323,7 +323,7 @@ Which of the 4 models would you move forward with?
 
 set.seed(123)
 
-streamflow <- q_mean |> 
+streamflow <- q_mean <- camels |> 
   mutate(logQmean = log(q_mean))
 
 streamflow_split <- initial_split(streamflow, prop = 0.75)
@@ -350,7 +350,7 @@ rec2 <-  recipe(logQmean ~ soil_porosity + dom_land_cover, data = streamflow_tra
 ## fitting the lm to the data
 
 # Prepare the data
-baked_stream_data <- prep(rec, streamflow_train) |> 
+baked_stream_data <- prep(rec2, streamflow_train) |> 
   bake(new_data = NULL)
 ```
 
