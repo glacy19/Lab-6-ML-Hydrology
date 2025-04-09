@@ -300,7 +300,7 @@ xg_model <- boost_tree() |>
 # building neural network model
 library(baguette)
 nn_model <- bag_mlp() |>
-  set_engine("nnet") |>
+  set_engine("nnet") |>a
   set_mode("classification")
 
 # evaluate models and compare with linear and random forest models
