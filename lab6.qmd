@@ -370,15 +370,14 @@ lm_model2 <- linear_reg() %>%
   set_engine("lm") %>%
   set_mode("regression")
 
-
-
+nn_model2 <- bag_mlp() |>
+  set_engine("nnet") |>
+  set_mode("regression")
 ```
 
 Workflow set:
 
 ```{r}
-## ORIGINAL CODE FROM DEMO ABOVE
-
 # Interaction with lm
 #  Base lm sets interaction terms with the * symbol
 lm_stream_base <- lm(logQmean ~ soil_porosity * water_frac, data = baked_stream_data)
