@@ -295,14 +295,14 @@ rank_results(wf, rank_metric = "rsq", select_best = TRUE)
 #defining the xgboost model
 xg_model <- boost_tree() |>
   set_engine("xgboost") |>
-  set_mode("classification")
+  set_mode("regression")
 
 
 # building neural network model
 library(baguette)
 nn_model <- bag_mlp() |>
   set_engine("nnet") |>
-  set_mode("classification")
+  set_mode("regression")
 
 # evaluate models and compare with linear and random forest models
 workflow <- workflow_set(list(rec),list(linear = lm_model,
@@ -311,11 +311,12 @@ workflow <- workflow_set(list(rec),list(linear = lm_model,
                                         nnet = nn_model))|>
   
 workflow_map('fit_resamples', resamples = camels_cv)
-
 autoplot(workflow)
 ```
 
 Which of the 4 models would you move forward with?
+
+I will be moving forward with the boost_tree model because it has the smallest range for rsq values.
 
 **Question 4: Data prep/ Data splitting to predict mean Stream flow; experiment with other predictors**
 
@@ -355,9 +356,28 @@ baked_stream_data <- prep(rec2, streamflow_train) |>
   bake(new_data = NULL)
 ```
 
-Define 3 models:
+I will be choosing the soil porosity and \_\_\_\_ variables
+
+Define 3 models (randomForest needs to be included):
 
 ```{r}
+
+rf_model2 <- rand_forest() %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("regression")
+
+lm_model2 <- linear_reg() %>%
+  set_engine("lm") %>%
+  set_mode("regression")
+
+
+
+```
+
+Workflow set:
+
+```{r}
+## ORIGINAL CODE FROM DEMO ABOVE
 
 # Interaction with lm
 #  Base lm sets interaction terms with the * symbol
@@ -374,26 +394,20 @@ summary(lm(logQmean ~ soil_porosity + water_frac + soil_x_water, data = baked_st
 stream_test_data <-  bake(prep(rec), new_stream_data = streamflow_test)
 stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_data)
 
-```
-
-Workflow set:
-
-```{r}
-## ORIGINAL CODE FROM DEMO ABOVE
 
 wf <- workflow_set(list(rec), list(lm_model, rf_model)) %>%
-  workflow_map('fit_resamples', resamples = camels_cv) 
-
-autoplot(wf)
-
-rank_results(wf, rank_metric = "rsq", select_best = TRUE)
+  workflow_map('fit_resamples', resamples = camels_cv)
 ```
 
 Evaluation:
 
 ```{r}
+autoplot(wf)
 
+rank_results(wf, rank_metric = "rsq", select_best = TRUE)
 ```
+
+I think that \_\_\_\_ model is best because of \_\_\_\_\_\_.
 
 Extract and Evaluate:
 
