@@ -5,3 +5,4 @@ project:
 format:
   html:
     self-contained: true
+    

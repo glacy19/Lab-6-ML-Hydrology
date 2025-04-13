@@ -297,21 +297,22 @@ xg_model <- boost_tree() |>
   set_engine("xgboost") |>
   set_mode("classification")
 
+
 # building neural network model
 library(baguette)
 nn_model <- bag_mlp() |>
-  set_engine("nnet") |>a
+  set_engine("nnet") |>
   set_mode("classification")
 
 # evaluate models and compare with linear and random forest models
-workflow() |>
-  add_model(nn_model,
-            xg_model, 
-            lm_model, 
-            rf_model)
+workflow <- workflow_set(list(rec),list(linear = lm_model,
+                                        xgb = xg_model,
+                                        rf = rf_model,
+                                        nnet = nn_model))|>
   
-  fir-resamples(resamples = ) |>
-  collect_metrics()
+workflow_map('fit_resamples', resamples = camels_cv)
+
+autoplot(workflow)
 ```
 
 Which of the 4 models would you move forward with?
@@ -339,11 +340,11 @@ Recipe:
 # pre processor, building recipe 
 
 # Create a recipe to preprocess the data
-rec2 <-  recipe(logQmean ~ soil_porosity + dom_land_cover, data = streamflow_train) %>%
+rec2 <-  recipe(logQmean ~ soil_porosity + water_frac, data = streamflow_train) %>%
   # Log transform the predictor variables (aridity and p_mean)
   step_log(all_predictors()) %>%
   # Add an interaction term between aridity and p_mean
-  step_interact(terms = ~ soil_porosity:dom_land_cover) |> 
+  step_interact(terms = ~ soil_porosity:water_frac) |> 
   # Drop any rows with missing values in the pred
   step_naomit(all_predictors(), all_outcomes())
 
@@ -360,19 +361,18 @@ Define 3 models:
 
 # Interaction with lm
 #  Base lm sets interaction terms with the * symbol
-lm_stream_base <- lm(logQmean ~ soil_porosity * dom_land_cover, data = baked_stream_data)
+lm_stream_base <- lm(logQmean ~ soil_porosity * water_frac, data = baked_stream_data)
 summary(lm_stream_base)
 
 
 # Sanity Interaction term from recipe ... these should be equal!!
-summary(lm(logQmean ~ soil_porosity + dome-land_cover + soil_x_land, data = baked_stream_data))
+summary(lm(logQmean ~ soil_porosity + water_frac + soil_x_water, data = baked_stream_data))
 
 
 ## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
 
 stream_test_data <-  bake(prep(rec), new_stream_data = streamflow_test)
 stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_data)
-
 
 ```
 
