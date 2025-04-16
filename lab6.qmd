@@ -356,7 +356,7 @@ baked_stream_data <- prep(rec2, streamflow_train) |>
   bake(new_data = NULL)
 ```
 
-I will be choosing the soil porosity and \_\_\_\_ variables
+I will be choosing the soil porosity and water_frac (the fraction of the top 1.5m marked as water) variables for the recipe.
 
 Define 3 models (randomForest needs to be included):
 
@@ -390,20 +390,20 @@ summary(lm(logQmean ~ soil_porosity + water_frac + soil_x_water, data = baked_st
 
 ## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
 
-stream_test_data <-  bake(prep(rec), new_stream_data = streamflow_test)
+stream_test_data <- bake(prep(rec), new_stream_data = streamflow_test)
 stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_data)
 
 
-wf <- workflow_set(list(rec), list(lm_model, rf_model)) %>%
+new_wf <- workflow_set(list(rec), list(lm_model2, rf_model2, nn_model2)) %>%
   workflow_map('fit_resamples', resamples = camels_cv)
 ```
 
 Evaluation:
 
 ```{r}
-autoplot(wf)
+autoplot(new_wf)
 
-rank_results(wf, rank_metric = "rsq", select_best = TRUE)
+rank_results(new_wf, rank_metric = "rsq", select_best = TRUE)
 ```
 
 I think that \_\_\_\_ model is best because of \_\_\_\_\_\_.
