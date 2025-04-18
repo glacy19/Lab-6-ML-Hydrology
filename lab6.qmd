@@ -316,7 +316,7 @@ autoplot(workflow)
 
 Which of the 4 models would you move forward with?
 
-I will be moving forward with the boost_tree model because it has the smallest range for rsq values.
+I will be moving forward with the linear_reg ("lm_model") model because it has the smallest range for rsq values.
 
 **Question 4: Data prep/ Data splitting to predict mean Stream flow; experiment with other predictors**
 
@@ -338,8 +338,6 @@ streamflow_fold <- vfold_cv(streamflow_train, v = 10)
 Recipe:
 
 ```{r}
-# pre processor, building recipe 
-
 # Create a recipe to preprocess the data
 rec2 <-  recipe(logQmean ~ soil_porosity + water_frac, data = streamflow_train) %>%
   # Log transform the predictor variables (aridity and p_mean)
@@ -411,5 +409,13 @@ I think that \_\_\_\_ model is best because of \_\_\_\_\_\_.
 Extract and Evaluate:
 
 ```{r}
+fit <- new_wf() |>
+  add_recipe(rec2) |>
+  add_model(lm_model2) |>
+  fit(data = streamflow_train)
 
+vip::vip(fit)
+
+predictions <- augment (fit, new_data = streamflow_test) |>
+  mutate(diff = abs(logC, estimate = .pred))
 ```
