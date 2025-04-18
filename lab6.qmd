@@ -335,15 +335,26 @@ streamflow_test  <- testing(streamflow_split)
 streamflow_fold <- vfold_cv(streamflow_train, v = 10)
 ```
 
+Model Preparation:
+
+```{r}
+camels |> 
+  select(runoff_ratio,slope_fdc, q_mean) |> 
+  drop_na() |> 
+  cor()
+```
+
+I will be trying to see if model I build will be able to predict mean flow using the runoff ratio and the slope. "runoff_ratio" tells us the ratio of mean daily discharge to mean daily precipitation. "slope_fdc" tells us the slope of the flow duration curve.
+
 Recipe:
 
 ```{r}
 # Create a recipe to preprocess the data
-rec2 <-  recipe(logQmean ~ soil_porosity + water_frac, data = streamflow_train) %>%
+rec2 <-  recipe(logQmean ~ runoff_ratio + slope_fdc, data = streamflow_train) %>%
   # Log transform the predictor variables (aridity and p_mean)
   step_log(all_predictors()) %>%
   # Add an interaction term between aridity and p_mean
-  step_interact(terms = ~ soil_porosity:water_frac) |> 
+  step_interact(terms = ~ runoff_ratio:slope_fdc) |> 
   # Drop any rows with missing values in the pred
   step_naomit(all_predictors(), all_outcomes())
 
@@ -378,21 +389,27 @@ Workflow set:
 ```{r}
 # Interaction with lm
 #  Base lm sets interaction terms with the * symbol
-lm_stream_base <- lm(logQmean ~ soil_porosity * water_frac, data = baked_stream_data)
+
+# Changing Inf and -Inf values
+baked_stream_data <- baked_stream_data %>%
+  mutate(across(everything(), ~ replace(.x, is.infinite(.x), max(.x[!is.infinite(.x)], na.rm = TRUE))))
+
+
+lm_stream_base <- lm(logQmean ~ runoff_ratio * slope_fdc, data = baked_stream_data)
 summary(lm_stream_base)
 
 
 # Sanity Interaction term from recipe ... these should be equal!!
-summary(lm(logQmean ~ soil_porosity + water_frac + soil_x_water, data = baked_stream_data))
+summary(lm(logQmean ~ runoff_ratio + slope_fdc, data = baked_stream_data))
 
 
 ## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
 
-stream_test_data <- bake(prep(rec), new_stream_data = streamflow_test)
+stream_test_data <- bake(prep(rec2), new_stream_data = streamflow_test)
 stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_data)
 
 
-new_wf <- workflow_set(list(rec), list(lm_model2, rf_model2, nn_model2)) %>%
+new_wf <- workflow_set(list(rec2), list(lm_model2, rf_model2, nn_model2)) %>%
   workflow_map('fit_resamples', resamples = camels_cv)
 ```
 
