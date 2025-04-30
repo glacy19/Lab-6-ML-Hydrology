@@ -405,9 +405,11 @@ summary(lm(logQmean ~ runoff_ratio + slope_fdc, data = baked_stream_data))
 
 ## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
 
-stream_test_data <- bake(prep(rec2), new_stream_data = streamflow_test)
+baked_stream_data <- prep(rec2, streamflow_train) |> 
+  bake(new_data = NULL)
 
-stream_test_data$lm_pred <- predict(lm_base, streamflownewdata = stream_test_data)
+prepped_rec2 <- prep(rec2, training = streamflow_train)
+baked_stream_data <- bake(prepped_rec2, new_data = streamflow_train)
 
 
 new_wf <- workflow_set(list(rec2), list(lm_model2, rf_model2, nn_model2)) %>%

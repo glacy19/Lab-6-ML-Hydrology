@@ -5,3 +5,12 @@ subtitle: "ESS 330 Quantitative Reasoning"
 format: html
 editor: visual
 ---
+
+Reading in the data and cleaning it
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+
+
+```
