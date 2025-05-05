@@ -339,22 +339,22 @@ Model Preparation:
 
 ```{r}
 camels |> 
-  select(runoff_ratio,slope_fdc, q_mean) |> 
+  select(runoff_ratio,baseflow_index, q_mean) |> 
   drop_na() |> 
   cor()
 ```
 
-I will be trying to see if model I build will be able to predict mean flow using the runoff ratio and the slope. "runoff_ratio" tells us the ratio of mean daily discharge to mean daily precipitation. "slope_fdc" tells us the slope of the flow duration curve.
+I will be trying to see if model I build will be able to predict mean flow using the runoff ratio and the base flow index. "runoff_ratio" tells us the ratio of mean daily discharge to mean daily precipitation. "baseflow_index" tells us about the daily stream discharge.
 
 Recipe:
 
 ```{r}
 # Create a recipe to preprocess the data
-rec2 <-  recipe(logQmean ~ runoff_ratio + slope_fdc, data = streamflow_train) %>%
+rec2 <-  recipe(logQmean ~ runoff_ratio + baseflow_index, data = streamflow_train) %>%
   # Log transform the predictor variables (aridity and p_mean)
   step_log(all_predictors()) %>%
-  # Add an interaction term between aridity and p_mean
-  step_interact(terms = ~ runoff_ratio:slope_fdc) |> 
+  # Add an interaction term between runoff_ratio and baseflow_index
+  step_interact(terms = ~ runoff_ratio:baseflow_index) |> 
   # Drop any rows with missing values in the pred
   step_naomit(all_predictors(), all_outcomes())
 
@@ -366,7 +366,7 @@ baked_stream_data <- prep(rec2, streamflow_train) |>
   drop_na()
 ```
 
-I will be choosing the soil porosity and water_frac (the fraction of the top 1.5m marked as water) variables for the recipe.
+I will be choosing the runoff_ratio and baseflow_index as variables for the recipe.
 
 Define 3 models (randomForest needs to be included):
 
@@ -390,21 +390,19 @@ Workflow set:
 
 ```{r}
 # Interaction with lm
-#  Base lm sets interaction terms with the * symbol
+# Base lm sets interaction terms with the * symbol
 
 ## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
-
-baked_stream_data <- baked_stream_data %>%
-  mutate(across(where(is.numeric), ~ ifelse(is.infinite(.x) | is.nan(.x), NA, .x)))
-
 baked_stream_data <- baked_stream_data %>% drop_na()
 
+baked_stream_data <- baked_stream_data %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.x), median(.x, na.rm = TRUE), .x)))
 
-lm_stream_base <- lm(logQmean ~ runoff_ratio * slope_fdc, data = baked_stream_data)
+lm_stream_base <- lm(logQmean ~ runoff_ratio * baseflow_index, data = baked_stream_data)
 summary(lm_stream_base)
 
 # Sanity Interaction term from recipe ... these should be equal!!
-summary(lm(logQmean ~ runoff_ratio + slope_fdc, data = baked_stream_data))
+summary(lm(logQmean ~ runoff_ratio + baseflow_index, data = baked_stream_data))
 
 
 baked_stream_data <- prep(rec2, streamflow_train) |> 
@@ -426,18 +424,34 @@ autoplot(new_wf)
 rank_results(new_wf, rank_metric = "rsq", select_best = TRUE)
 ```
 
-I think that \_\_\_\_ model is best because of \_\_\_\_\_\_.
+I think that linear regression model is best because it has the closest r squared value to 1 .
 
 Extract and Evaluate:
 
 ```{r}
-fit <- new_wf() |>
-  add_recipe(rec2) |>
-  add_model(## ADD MODEL ##) |>
+eval_wf <- workflow() %>%
+  add_formula(logQmean ~ runoff_ratio + baseflow_index) %>%
+  add_model(lm_model2)
+    
+fitted_eval_wf <- eval_wf %>%
   fit(data = streamflow_train)
 
-vip::vip(fit)
+vip::vip(extract_fit_parsnip(fitted_eval_wf))
 
-predictions <- augment (fit, new_data = streamflow_test) |>
+predictions <- augment (fitted_eval_wf, new_data = streamflow_test) %>%
   mutate(diff = abs(logC, estimate = .pred))
+
+
+library(ggplot2)
+
+ggplot(predictions, aes(x = .pred, y = logQmean)) +
+  geom_point(aes(color = abs(logQmean - .pred)), alpha = 0.7) +
+  scale_color_viridis_c(option = "magma") +
+  labs(
+    title = "Observed vs. Predicted Streamflow",
+    x = "Predicted Log(Qmean)",
+    y = "Observed Log(Qmean)",
+    color = "Prediction Error"
+  ) +
+  theme_minimal()
 ```
