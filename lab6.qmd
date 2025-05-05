@@ -383,6 +383,7 @@ lm_model2 <- linear_reg() %>%
 nn_model2 <- bag_mlp() %>%
   set_engine("nnet") %>%
   set_mode("regression")
+
 ```
 
 Workflow set:
@@ -391,18 +392,20 @@ Workflow set:
 # Interaction with lm
 #  Base lm sets interaction terms with the * symbol
 
+## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
 
+baked_stream_data <- baked_stream_data %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.infinite(.x) | is.nan(.x), NA, .x)))
+
+baked_stream_data <- baked_stream_data %>% drop_na()
 
 
 lm_stream_base <- lm(logQmean ~ runoff_ratio * slope_fdc, data = baked_stream_data)
 summary(lm_stream_base)
 
-
 # Sanity Interaction term from recipe ... these should be equal!!
 summary(lm(logQmean ~ runoff_ratio + slope_fdc, data = baked_stream_data))
 
-
-## need to validate the lm_stream_base on the stream test data; need to prep first, then bake and predict
 
 baked_stream_data <- prep(rec2, streamflow_train) |> 
   bake(new_data = NULL)
