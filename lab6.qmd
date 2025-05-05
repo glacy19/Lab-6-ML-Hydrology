@@ -429,20 +429,23 @@ I think that linear regression model is best because it has the closest r square
 Extract and Evaluate:
 
 ```{r}
+
 eval_wf <- workflow() %>%
   add_formula(logQmean ~ runoff_ratio + baseflow_index) %>%
   add_model(lm_model2)
-    
+   
 fitted_eval_wf <- eval_wf %>%
   fit(data = streamflow_train)
 
 vip::vip(extract_fit_parsnip(fitted_eval_wf))
 
+
 predictions <- augment (fitted_eval_wf, new_data = streamflow_test) %>%
-  mutate(diff = abs(logC, estimate = .pred))
+  mutate(diff = abs(logQmean - .pred))
 
 
 library(ggplot2)
+library(viridis)
 
 ggplot(predictions, aes(x = .pred, y = logQmean)) +
   geom_point(aes(color = abs(logQmean - .pred)), alpha = 0.7) +
