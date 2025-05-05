@@ -362,7 +362,8 @@ rec2 <-  recipe(logQmean ~ runoff_ratio + slope_fdc, data = streamflow_train) %>
 
 # Prepare the data
 baked_stream_data <- prep(rec2, streamflow_train) |> 
-  bake(new_data = NULL)
+  bake(new_data = NULL) |>
+  drop_na()
 ```
 
 I will be choosing the soil porosity and water_frac (the fraction of the top 1.5m marked as water) variables for the recipe.
@@ -379,8 +380,8 @@ lm_model2 <- linear_reg() %>%
   set_engine("lm") %>%
   set_mode("regression")
 
-nn_model2 <- bag_mlp() |>
-  set_engine("nnet") |>
+nn_model2 <- bag_mlp() %>%
+  set_engine("nnet") %>%
   set_mode("regression")
 ```
 
@@ -390,9 +391,7 @@ Workflow set:
 # Interaction with lm
 #  Base lm sets interaction terms with the * symbol
 
-# Changing Inf and -Inf values
-baked_stream_data <- baked_stream_data %>%
-  mutate(across(everything(), ~ replace(.x, is.infinite(.x), max(.x[!is.infinite(.x)], na.rm = TRUE))))
+
 
 
 lm_stream_base <- lm(logQmean ~ runoff_ratio * slope_fdc, data = baked_stream_data)
@@ -416,7 +415,7 @@ new_wf <- workflow_set(list(rec2), list(lm_model2, rf_model2, nn_model2)) %>%
   workflow_map('fit_resamples', resamples = camels_cv)
 ```
 
-Evaluation:
+Evaluation and ranking results:
 
 ```{r}
 autoplot(new_wf)
@@ -431,7 +430,7 @@ Extract and Evaluate:
 ```{r}
 fit <- new_wf() |>
   add_recipe(rec2) |>
-  add_model(lm_model2) |>
+  add_model(## ADD MODEL ##) |>
   fit(data = streamflow_train)
 
 vip::vip(fit)
