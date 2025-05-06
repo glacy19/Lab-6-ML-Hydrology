@@ -51,8 +51,6 @@ camels <- camels |>
 camels_split2 <- initial_split(camels, prop = 0.8)
 camels_train2 <- training(camels_split2)
 camels_test2  <- testing(camels_split2)
-
-camels_cv2 <- vfold_cv(camels_train2, v = 10)
 ```
 
 Feature Engineering:
@@ -85,13 +83,55 @@ Resampling and model testing:
 ```{r}
 
 ## building resamples with cross validation dataset (k-folds)
+library(rsample)
+
+new_camel_folds <- vfold_cv(camels_train2, v = 10)
 
 ## build 3 candidate regression models
+library(tidymodels)
 
+rf_spec <-rand_forest() %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+boosted_spec <- boost_tree() %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+mlp_spec <- mlp() %>%
+  set_engine("nnet") %>%
+  set_mode("regression")
+```
+
+Testing the models:
+
+```{r}
 ## test the models - workflow set, map and autoplot
+library(workflows)
+
+model_workflows <- workflow_set(
+  preproc = list(recipe = camels_recipe),
+  models = list(
+    rf = rf_spec,
+    boosted = boosted_spec,
+    mlp = mlp_spec
+  )
+)
+
+# mapping the models to recipe and resamples
+# fit models acrros k folds
+library(tune)
+new_fold_results <- workflow_map(
+  model_workflows,
+  resamples = new_camel_folds,
+  grid = 10,
+  metrics = metric_set(rmse, rsq),
+  verbose = TRUE
+)
+
+autoplot(new_fold_results)
 
 ## model selection with justification
-
 ```
 
 Model tuning:
