@@ -11,33 +11,73 @@ Reading in the data and cleaning it:
 ```{r}
 library(tidyverse)
 library(tidymodels)
+
+root  <- 'https://gdex.ucar.edu/dataset/camels/file'
+
+#Getting Basin Characteristics 
+types <- c("clim", "geol", "soil", "topo", "vege", "hydro")
+
+library(glue)
+# Where the files live online
+remote_files <- glue('{root}/camels_{types}.txt')
+
+# where we want to download the data
+local_files   <- glue('data/camels_{types}.txt')
+
+library(purrr)
+walk2(remote_files, local_files, download.file, quiet = TRUE)
+
 library(readr)
+library(MAP)
 library(powerjoin)
+# Read and merge data
+camels <- map(local_files, read_delim, show_col_types = FALSE) 
 
-# Define file paths
-file_paths <- c("data/file1.csv", "data/file2.csv", "data/file3.csv")
+camels <-power_full_join(camels ,by = 'gauge_id')
 
-# Read files into a list of tibbles
-data_list <- map(file_paths, ~ read_delim(.x, delim = ","))
+skimr::skim(camels)
 
-# Join all datasets iteratively
-merged_data <- reduce(data_list, power_full_join)
-
-# View the combined result
-print(merged_data)
 ```
 
 Data splitting:
 
 ```{r}
+library(rsample)
+set.seed(42)
 
-## intiial and testing/training split 
+camels <- camels |> 
+  mutate(logQmean = log(q_mean))
+
+camels_split2 <- initial_split(camels, prop = 0.8)
+camels_train2 <- training(camels_split2)
+camels_test2  <- testing(camels_split2)
+
+camels_cv2 <- vfold_cv(camels_train2, v = 10)
 ```
 
 Feature Engineering:
 
 ```{r}
 ## proper recipe
+library(recipes)
+
+# Create recipe for predicting q_mean
+camels_recipe <- recipe(q_mean ~ ., data = camels_train2) %>%
+  step_rm(gauge_lat, gauge_lon) %>%  # Remove spatial columns from predictors
+  step_normalize(all_numeric_predictors()) %>%  # Standardize numeric features
+  step_dummy(all_nominal_predictors()) %>%  # Convert categorical variables into dummies
+  step_zv(all_predictors())  # Remove zero-variance predictors
+
+# View the recipe blueprint
+camels_recipe
+
+# Prepping the recipe using training data
+prepped_recipe <- prep(camels_recipe, training = camels_train2)
+
+# Apply transformations while keeping gauge_lat and gauge_lon
+train_ready <- bake(prepped_recipe, new_data = camels_train2)
+test_ready <- bake(prepped_recipe, new_data = camels_test2)
+
 ```
 
 Resampling and model testing:
