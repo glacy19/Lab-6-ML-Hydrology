@@ -6,11 +6,100 @@ format: html
 editor: visual
 ---
 
-Reading in the data and cleaning it
+Reading in the data and cleaning it:
 
 ```{r}
 library(tidyverse)
 library(tidymodels)
+library(readr)
+library(powerjoin)
 
+# Define file paths
+file_paths <- c("data/file1.csv", "data/file2.csv", "data/file3.csv")
+
+# Read files into a list of tibbles
+data_list <- map(file_paths, ~ read_delim(.x, delim = ","))
+
+# Join all datasets iteratively
+merged_data <- reduce(data_list, power_full_join)
+
+# View the combined result
+print(merged_data)
+```
+
+Data splitting:
+
+```{r}
+
+## intiial and testing/training split 
+```
+
+Feature Engineering:
+
+```{r}
+## proper recipe
+```
+
+Resampling and model testing:
+
+```{r}
+
+## building resamples with cross validation dataset (k-folds)
+
+## build 3 candidate regression models
+
+## test the models - workflow set, map and autoplot
+
+## model selection with justification
+
+```
+
+Model tuning:
+
+```{r}
+## build model for chosen specification
+
+
+## create workflow
+
+## check the tunable values/ ranges
+
+## define the search space
+
+
+```
+
+Tune the model:
+
+```{r}
+## tune the model - code used from class
+
+model_params <-  tune_grid(
+    wf_tune,
+    resamples = folds,
+    grid = my.grid,
+    metrics = metric_set(rmse, rsq, mae),
+    control = control_grid(save_pred = TRUE)
+  )
+
+autoplot(model_params)
+```
+
+Check the skill of the tuned model:
+
+```{r}
+## do this by collecting metrics/ show best/ describe in plain language
+```
+
+Finalize model and verify:
+
+```{r}
+## implenent the last fit, interpret metrics, plot predictions
+
+```
+
+Building a map (use conus):
+
+```{r}
 
 ```
