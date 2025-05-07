@@ -51,6 +51,18 @@ camels <- camels |>
 camels_split2 <- initial_split(camels, prop = 0.8)
 camels_train2 <- training(camels_split2)
 camels_test2  <- testing(camels_split2)
+
+
+## filtering rows that have NA values
+camels_train2 <- camels_train2 %>% filter(!is.na(q_mean))
+
+camels_tests2 <- camels_test2 %>% filter(!is.na(q_mean))
+
+## filtering rows with Inf values 
+camels_train2 <-camels_train2 %>% filter(is.finite(q_mean))
+
+camels_test2 <- camels_tests2 %>% filter(is.finite(q_mean))
+  
 ```
 
 Feature Engineering:
@@ -58,13 +70,14 @@ Feature Engineering:
 ```{r}
 ## proper recipe
 library(recipes)
-
-# Create recipe for predicting q_mean
 camels_recipe <- recipe(q_mean ~ ., data = camels_train2) %>%
-  step_rm(gauge_lat, gauge_lon) %>%  # Remove spatial columns from predictors
-  step_normalize(all_numeric_predictors()) %>%  # Standardize numeric features
-  step_dummy(all_nominal_predictors()) %>%  # Convert categorical variables into dummies
-  step_zv(all_predictors())  # Remove zero-variance predictors
+  step_rm(gauge_lat, gauge_lon) %>%
+  step_novel(all_nominal_predictors()) %>%  # Handle unseen factor levels
+  step_unknown(all_nominal_predictors()) %>%  # Handle missing categorical values
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+ 
 
 # View the recipe blueprint
 camels_recipe
@@ -90,16 +103,16 @@ new_camel_folds <- vfold_cv(camels_train2, v = 10)
 ## build 3 candidate regression models
 library(tidymodels)
 
-rf_spec <-rand_forest() %>%
+rf_spec <-rand_forest(trees = tune()) %>%
   set_engine("ranger") %>%
   set_mode("regression")
 
-boosted_spec <- boost_tree() %>%
+boosted_spec <- boost_tree(learn_rate = tune(), trees = 500) %>%
   set_engine("xgboost") %>%
   set_mode("regression")
 
-mlp_spec <- mlp() %>%
-  set_engine("nnet") %>%
+lm_spec <- linear_reg() %>%
+  set_engine("lm") %>%
   set_mode("regression")
 ```
 
@@ -114,9 +127,7 @@ model_workflows <- workflow_set(
   models = list(
     rf = rf_spec,
     boosted = boosted_spec,
-    mlp = mlp_spec
-  )
-)
+    lm = lm_spec))
 
 # mapping the models to recipe and resamples
 # fit models acrros k folds
@@ -131,8 +142,11 @@ new_fold_results <- workflow_map(
 
 autoplot(new_fold_results)
 
-## model selection with justification
 ```
+
+Model selection: Describe the reason for your choice with metrics. What is the model type, engine, and mode? Why do you think it's performing well for this problem?
+
+I think that the model I will be using is boost_tree, the engine is xgboost and the mode is regression. The r squared value is extremely close to 1 and the root means squared error is also low which means that there are less errors.
 
 Model tuning:
 
