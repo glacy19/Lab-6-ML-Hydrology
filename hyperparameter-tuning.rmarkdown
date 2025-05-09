@@ -6,7 +6,11 @@ format: html
 editor: visual
 ---
 
+
+
 Reading in the data and cleaning it:
+
+
 
 ```{r}
 library(tidyverse)
@@ -38,7 +42,11 @@ camels <-power_full_join(camels ,by = 'gauge_id')
 skimr::skim(camels)
 ```
 
+
+
 Data splitting:
+
+
 
 ```{r}
 library(rsample)
@@ -68,7 +76,11 @@ camels_test2 <- camels_test2 %>%
   
 ```
 
+
+
 Feature Engineering:
+
+
 
 ```{r}
 ## proper recipe
@@ -93,7 +105,11 @@ train_ready <- bake(prepped_recipe, new_data = camels_train2)
 test_ready <- bake(prepped_recipe, new_data = camels_test2)
 ```
 
+
+
 Resampling and model testing:
+
+
 
 ```{r}
 
@@ -118,7 +134,11 @@ lm_spec <- linear_reg() %>%
   set_mode("regression")
 ```
 
+
+
 Testing the models:
+
+
 
 ```{r}
 ## test the models - workflow set, map and auto plot
@@ -146,11 +166,15 @@ autoplot(new_fold_results)
 
 ```
 
+
+
 Model selection: Describe the reason for your choice with metrics. What is the model type, engine, and mode? Why do you think it's performing well for this problem?
 
 I think that the model I will be using is boost_tree, the engine is xgboost and the mode is regression. The r squared value is extremely close to 1 and the root means squared error is also low which means that there are less errors.
 
 Model tuning:
+
+
 
 ```{r}
 ## build model for chosen specification - define tunable model
@@ -186,7 +210,11 @@ my.grid <- grid_latin_hypercube(dials, size = 25)
 print(my.grid)
 ```
 
+
+
 Tune the model:
+
+
 
 ```{r}
 model_params <- tune_grid(
@@ -200,7 +228,11 @@ model_params <- tune_grid(
 autoplot(model_params)
 ```
 
+
+
 Check the skill of the tuned model:
+
+
 
 ```{r}
 ## do this by collecting metrics/ show best/ describe in plain language
@@ -220,7 +252,11 @@ print(hp_best)
 
 ```
 
+
+
 Finalize model and verify:
+
+
 
 ```{r}
 ## implement the last fit, interpret metrics, plot predictions
@@ -244,4 +280,7 @@ predictions <- collect_predictions(final_results)
 print(predictions)
 ```
 
+
+
 Note: since my predicted tibble has a zero value, I was not able to make graphs and I will accept any points off.
+
